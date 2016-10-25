@@ -1,11 +1,10 @@
-import http.cookiejar as cookielib
 import sys
 import os.path
-import requests
 from PIL import Image
 from bs4 import BeautifulSoup
 import time
 import re
+import json
 
 
 class Login:
@@ -21,24 +20,12 @@ class Login:
         "Accept-Encoding": "gzip, deflate, br",
     }
     __xsrf = ''
-    __cookie_file = ''
     __session = ''
     username = ''
     password = ''
 
-    def __init__(self):
-
-        self.__cookie_file = os.path.join(sys.path[0], 'cookie')  # cookie路径
-
-        # session
-        self.__session = requests.Session()
-        self.__session.cookies = cookielib.LWPCookieJar(filename='cookie')
-        try:
-            self.__session.cookies.load(ignore_discard=True)
-        except:
-            print("Cookie 未能加载")
-        finally:
-            pass
+    def __init__(self, session):
+        self.__session = session
 
     # 获取xsrf
     def get_xsrf(self):
@@ -52,9 +39,11 @@ class Login:
         html = index_page.text
         # 这里的_xsrf 返回的是一个list
         BS = BeautifulSoup(html, 'html.parser')
-        self.__xsrf = BS.find(attrs={'name': '_xsrf'})
-        # return self.__xsrf[0]
-        return self.__xsrf
+        xsrf_input = BS.find(attrs={'name': '_xsrf'})
+        pattern = r'value=\"(.*?)\"'
+        print(xsrf_input)
+        self.__xsrf = re.findall(pattern, str(xsrf_input))
+        return self.__xsrf[0]
 
     # 获取验证码
     def get_captcha(self):
@@ -81,7 +70,7 @@ class Login:
         check_url = 'https://www.zhihu.com/settings/profile'
         login_check = self.__session.get(check_url, headers=self.headers)
         print("验证登陆的http status code为：" + str(login_check.status_code))
-        if int(x=login_check.status_code) == 200:
+        if int(login_check.status_code) == 200:
             return True
         else:
             return False
@@ -112,12 +101,14 @@ class Login:
 
         try:
             login_page = self.__session.post(post_url, postdata, headers=self.headers)
-            print(login_page.status_code)
-            print(str(login_page.text.encode('UTF-8')))
+            login_text = json.loads(login_page.text.encode('latin-1').decode('unicode-escape'))
+            print(login_text)
+            # 需要输入验证码 r = 0为登陆成功代码
+            if login_text['r'] == 1:
+                sys.exit()
         except:
             postdata['captcha'] = self.get_captcha()
             login_page = self.__session.post(post_url, postdata, headers=self.headers)
-            login_code = eval(login_page.text)
-            print(str(login_code['msg'].encode('UTF-8')))
+            print(json.loads(login_page.text.encode('latin-1').decode('unicode-escape')))
         # 保存登陆cookie
         self.__session.cookies.save()
