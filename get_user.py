@@ -1,12 +1,18 @@
 import login.login
 import requests
 import http.cookiejar as cookielib
+import configparser
 
 
 class GetUser:
     session = ''
+    config = ''
 
     def __init__(self):
+        # 获取配置
+        self.config = configparser.ConfigParser()
+        self.config.read("config.ini")
+
         # session
         self.session = session = requests.Session()
         self.session.cookies = cookielib.LWPCookieJar(filename='cookie')
@@ -17,6 +23,7 @@ class GetUser:
         finally:
             pass
 
+        # 创建login对象
         lo = login.login.Login(self.session)
 
         # 模拟登陆
@@ -25,6 +32,20 @@ class GetUser:
         else:
             # username = input('请输入你的用户名\n>  ')
             # password = input("请输入你的密码\n>  ")
-            lo.do_login('13527886582', '272138127')
-            # lo.do_login(username, password)
 
+            if self.config.get("zhihu_account", "username") and self.config.get("zhihu_account", "username"):
+                username = self.config.get("zhihu_account", "username")
+                password = self.config.get("zhihu_account", "password")
+            else:
+                username = input('请输入你的用户名\n>  ')
+                password = input("请输入你的密码\n>  ")
+
+            lo.do_login(username, password)
+
+    def get_data(self):
+        pass
+
+
+if __name__ == '__main__':
+    gu = GetUser()
+    gu.get_data()

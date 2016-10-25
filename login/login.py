@@ -102,6 +102,7 @@ class Login:
         try:
             login_page = self.__session.post(post_url, postdata, headers=self.headers)
             login_text = json.loads(login_page.text.encode('latin-1').decode('unicode-escape'))
+            print(postdata)
             print(login_text)
             # 需要输入验证码 r = 0为登陆成功代码
             if login_text['r'] == 1:
