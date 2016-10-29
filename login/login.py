@@ -18,6 +18,7 @@ class Login:
         "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
         "Pragma": "no-cache",
         "Accept-Encoding": "gzip, deflate, br",
+        'Connection': 'close'
     }
     __xsrf = ''
     __session = ''
@@ -68,7 +69,11 @@ class Login:
     # 验证是否登陆
     def check_login(self):
         check_url = 'https://www.zhihu.com/settings/profile'
-        login_check = self.__session.get(check_url, headers=self.headers)
+        try:
+            login_check = self.__session.get(check_url, headers=self.headers)
+        except:
+            print("验证登陆失败，请检查网络")
+            sys.exit()
         print("验证登陆的http status code为：" + str(login_check.status_code))
         if int(login_check.status_code) == 200:
             return True
