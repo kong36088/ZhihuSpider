@@ -10,8 +10,9 @@ import json
 import math
 import re
 import pymysql
-from time import sleep
 import traceback
+import threading
+
 
 class GetUser:
     session = ''
@@ -36,7 +37,8 @@ class GetUser:
     db_cursor = ''
     counter = 0  # 记录多少用户被抓取
 
-    def __init__(self):
+    def __init__(self, threadId=1):
+        print("线程" + str(threadId) + "初始化")
         # 获取配置
         self.config = configparser.ConfigParser()
         self.config.read("config.ini")
@@ -53,22 +55,26 @@ class GetUser:
         finally:
             pass
 
-        # 创建login对象
-        lo = login.login.Login(self.session)
+        try:
+            # 创建login对象
+            lo = login.login.Login(self.session)
 
-        # 模拟登陆
-        if lo.check_login():
-            print('您已经登录')
-        else:
-            if self.config.get("zhihu_account", "username") and self.config.get("zhihu_account", "username"):
-                username = self.config.get("zhihu_account", "username")
-                password = self.config.get("zhihu_account", "password")
+            # 模拟登陆
+            if lo.check_login():
+                print('您已经登录')
             else:
-                username = input('请输入你的用户名\n>  ')
-                password = input("请输入你的密码\n>  ")
+                if self.config.get("zhihu_account", "username") and self.config.get("zhihu_account", "username"):
+                    username = self.config.get("zhihu_account", "username")
+                    password = self.config.get("zhihu_account", "password")
+                else:
+                    username = input('请输入你的用户名\n>  ')
+                    password = input("请输入你的密码\n>  ")
 
-            lo.do_login(username, password)
-        # 初始化redis连接
+                lo.do_login(username, password)
+            # 初始化redis连接
+        except:
+            sys.exit()
+
         try:
             redis_host = self.config.get("redis", "host")
             redis_port = self.config.get("redis", "port")
@@ -215,7 +221,8 @@ class GetUser:
                 'params': json.dumps({"offset": i, "order_by": "created", "hash_id": hash_id})
             }
             try:
-                j = self.session.post(post_url, params=post_data, headers=self.headers, timeout=35).text.encode('latin-1').decode(
+                j = self.session.post(post_url, params=post_data, headers=self.headers, timeout=35).text.encode(
+                    'latin-1').decode(
                     'unicode-escape')
                 pattern = re.compile(r"class=\"zm-item-link-avatar\"[^\"]*\"([^\"]*)", re.DOTALL)
                 j = pattern.findall(j)
@@ -253,7 +260,8 @@ class GetUser:
                 'params': json.dumps({"offset": i, "order_by": "created", "hash_id": hash_id})
             }
             try:
-                j = self.session.post(post_url, params=post_data, headers=self.headers, timeout=35).text.encode('latin-1').decode(
+                j = self.session.post(post_url, params=post_data, headers=self.headers, timeout=35).text.encode(
+                    'latin-1').decode(
                     'unicode-escape')
                 pattern = re.compile(r"class=\"zm-item-link-avatar\"[^\"]*\"([^\"]*)", re.DOTALL)
                 j = pattern.findall(j)
@@ -381,6 +389,35 @@ class GetUser:
                 self.get_all_following(name_url)
             self.session.cookies.save()
 
+
+# 多线程抓取数据
+class MultiGetUser(threading.Thread):
+    obj = ''
+
+    def __init__(self, threadID, name):
+        threading.Thread.__init__(self)
+        self.threadID = threadID
+        self.name = name
+        try:
+            self.obj = GetUser(threadID)
+        except Exception as err:
+            print(err)
+            print("线程" + str(threadID) + "开启失败")
+
+
+    def run(self):
+        print(self.name + " is running")
+        self.obj.start()
+
+
 if __name__ == '__main__':
-    gu = GetUser()
-    gu.start()
+    threads = []
+    for i in range(0, 2):
+        m = MultiGetUser(i, "thread" + str(i))
+        threads.append(m)
+
+    for i in range(0, 2):
+        m[i].start()
+
+    for i in range(0, 2):
+        m[i].join()

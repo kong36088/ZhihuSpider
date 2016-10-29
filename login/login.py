@@ -1,5 +1,5 @@
 import sys
-import os.path
+import os
 from PIL import Image
 from bs4 import BeautifulSoup
 import time
@@ -33,7 +33,7 @@ class Login:
         index_url = 'http://www.zhihu.com'
         # 获取登录时需要用到的_xsrf
         try:
-            index_page = self.__session.get(index_url, headers=self.headers)
+            index_page = self.__session.get(index_url, headers=self.headers, timeout=35)
         except:
             print('获取知乎页面失败，请检查网络连接')
             sys.exit()
@@ -50,7 +50,7 @@ class Login:
     def get_captcha(self):
         t = str(time.time() * 1000)
         captcha_url = 'http://www.zhihu.com/captcha.gif?r=' + t + "&type=login"
-        r = self.__session.get(captcha_url, headers=self.headers)
+        r = self.__session.get(captcha_url, headers=self.headers, timeout=35)
         with open('captcha.jpg', 'wb') as f:
             f.write(r.content)
             f.close()
@@ -70,10 +70,10 @@ class Login:
     def check_login(self):
         check_url = 'https://www.zhihu.com/settings/profile'
         try:
-            login_check = self.__session.get(check_url, headers=self.headers)
+            login_check = self.__session.get(check_url, headers=self.headers, timeout=35)
         except:
             print("验证登陆失败，请检查网络")
-            sys.exit()
+            os._exit()
         print("验证登陆的http status code为：" + str(login_check.status_code))
         if int(login_check.status_code) == 200:
             return True
@@ -105,7 +105,7 @@ class Login:
             }
 
         try:
-            login_page = self.__session.post(post_url, postdata, headers=self.headers)
+            login_page = self.__session.post(post_url, postdata, headers=self.headers, timeout=35)
             login_text = json.loads(login_page.text.encode('latin-1').decode('unicode-escape'))
             print(postdata)
             print(login_text)
@@ -114,7 +114,7 @@ class Login:
                 sys.exit()
         except:
             postdata['captcha'] = self.get_captcha()
-            login_page = self.__session.post(post_url, postdata, headers=self.headers)
+            login_page = self.__session.post(post_url, postdata, headers=self.headers, timeout=35)
             print(json.loads(login_page.text.encode('latin-1').decode('unicode-escape')))
         # 保存登陆cookie
         self.__session.cookies.save()
