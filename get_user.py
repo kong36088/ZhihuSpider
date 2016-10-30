@@ -14,7 +14,7 @@ import traceback
 import threading
 
 
-class GetUser:
+class GetUser(threading.Thread):
     session = ''
     config = ''
     headers = {
@@ -38,8 +38,20 @@ class GetUser:
     counter = 0  # 记录多少用户被抓取
     max_queue_len = 1000  # redis带抓取用户队列最大长度
 
-    def __init__(self, threadId=1):
-        print("线程" + str(threadId) + "初始化")
+    def __init__(self, threadID=1, name=''):
+        # 多线程
+        print("线程" + str(threadID) + "初始化")
+        threading.Thread.__init__(self)
+        self.threadID = threadID
+        self.name = name
+        try:
+            print("线程" + str(threadID) + "初始化成功")
+        except Exception as err:
+            print(err)
+            print("线程" + str(threadID) + "开启失败")
+
+        self.threadLock = threading.Lock()
+
         # 获取配置
         self.config = configparser.ConfigParser()
         self.config.read("config.ini")
@@ -180,24 +192,22 @@ class GetUser:
     # 加入带抓取用户队列，先用redis判断是否已被抓取过
     def add_wait_user(self, name_url):
         # 判断是否已抓取
+        self.threadLock.acquire()
         if not self.redis_con.hexists('already_get_user', name_url):
             self.counter += 1
             print(name_url + " 加入队列")
             self.redis_con.hset('already_get_user', name_url, 1)
             self.redis_con.lpush('user_queue', name_url)
             print("添加用户 " + name_url + "到队列")
-            return True
-        else:
-            return False
+        self.threadLock.release()
 
     # 获取页面出错移出redis
     def del_already_user(self, name_url):
+        self.threadLock.acquire()
         if not self.redis_con.hexists('already_get_user', name_url):
             self.counter -= 1
             self.redis_con.hdel('already_get_user', name_url)
-            return True
-        else:
-            return False
+        self.threadLock.release()
 
     # 分析粉丝页面获取用户的所有粉丝用户
     # @param follower_page get_follower_page()中获取到的页面，这里获取用户hash_id请求粉丝接口获取粉丝信息
@@ -295,7 +305,7 @@ class GetUser:
             nickname = BS.find("a", class_="name").get_text() if BS.find("a", class_="name") else ''
             user_type = name_url[1:name_url.index('/', 1)]
             self_domain = name_url[name_url.index('/', 1) + 1:]
-            gender = 1 if BS.find("i", class_="icon icon-profile-female") else 2
+            gender = 2 if BS.find("i", class_="icon icon-profile-female") else (1 if BS.find("i", class_="icon icon-profile-male") else 3)
             follower_num = int(BS.find('span', text='关注者').find_parent().find('strong').get_text())
             following_num = int(BS.find('span', text='关注了').find_parent().find('strong').get_text())
             agree_num = int(re.findall(r'<strong>(.*)</strong>.*赞同', about_page)[0])
@@ -395,30 +405,15 @@ class GetUser:
                     self.get_all_following(name_url)
             self.session.cookies.save()
 
-
-# 多线程抓取数据
-class MultiGetUser(threading.Thread):
-    obj = ''
-
-    def __init__(self, threadID, name):
-        threading.Thread.__init__(self)
-        self.threadID = threadID
-        self.name = name
-        try:
-            self.obj = GetUser(threadID)
-        except Exception as err:
-            print(err)
-            print("线程" + str(threadID) + "开启失败")
-
+    # 多线程入口
     def run(self):
         print(self.name + " is running")
-        self.obj.start()
-
+        self.start()
 
 if __name__ == '__main__':
     threads = []
     for i in range(0, 4):
-        m = MultiGetUser(i, "thread" + str(i))
+        m = GetUser(i, "thread" + str(i))
         threads.append(m)
 
     for i in range(0, 4):
