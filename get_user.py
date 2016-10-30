@@ -36,6 +36,7 @@ class GetUser:
     db = ''
     db_cursor = ''
     counter = 0  # 记录多少用户被抓取
+    max_queue_len = 1000  # redis带抓取用户队列最大长度
 
     def __init__(self, threadId=1):
         print("线程" + str(threadId) + "初始化")
@@ -71,10 +72,11 @@ class GetUser:
                     password = input("请输入你的密码\n>  ")
 
                 lo.do_login(username, password)
-            # 初始化redis连接
+
         except:
             sys.exit()
 
+        # 初始化redis连接
         try:
             redis_host = self.config.get("redis", "host")
             redis_port = self.config.get("redis", "port")
@@ -98,6 +100,9 @@ class GetUser:
         except:
             print("请检查数据库配置")
             sys.exit()
+
+        # 初始化系统设置
+        self.max_queue_len = int(self.config.get("sys", "max_queue_len"))
 
     # 获取首页html
     def get_index_page(self):
@@ -385,8 +390,9 @@ class GetUser:
                 name_url = str(self.redis_con.rpop("user_queue").decode('utf-8'))
                 print("正在处理name_url：" + name_url)
                 self.get_user_info(name_url)
-                self.get_all_follower(name_url)
-                self.get_all_following(name_url)
+                if int(self.redis_con.llen("user_queue")) <= int(self.max_queue_len):
+                    self.get_all_follower(name_url)
+                    self.get_all_following(name_url)
             self.session.cookies.save()
 
 
@@ -404,7 +410,6 @@ class MultiGetUser(threading.Thread):
             print(err)
             print("线程" + str(threadID) + "开启失败")
 
-
     def run(self):
         print(self.name + " is running")
         self.obj.start()
@@ -412,12 +417,12 @@ class MultiGetUser(threading.Thread):
 
 if __name__ == '__main__':
     threads = []
-    for i in range(0, 2):
+    for i in range(0, 4):
         m = MultiGetUser(i, "thread" + str(i))
         threads.append(m)
 
-    for i in range(0, 2):
-        m[i].start()
+    for i in range(0, 4):
+        threads[i].start()
 
-    for i in range(0, 2):
-        m[i].join()
+    for i in range(0, 4):
+        threads[i].join()
