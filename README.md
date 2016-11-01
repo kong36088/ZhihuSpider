@@ -44,7 +44,7 @@ PyMySQL
 
 # Docker
 
-用docker简单的搭建一个基础环境：
+嫌麻烦的可以参考一下我用docker简单的搭建一个基础环境：
 mysql和redis都是官方镜像
 ```bash
 docker run --name mysql -itd mysql:latest
