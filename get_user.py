@@ -93,7 +93,8 @@ class GetUser(threading.Thread):
             redis_host = self.config.get("redis", "host")
             redis_port = self.config.get("redis", "port")
             self.redis_con = redis.Redis(host=redis_host, port=redis_port, db=0)
-            self.redis_con.flushdb()
+            # 刷新redis库
+            # self.redis_con.flushdb()
         except:
             print("请安装redis或检查redis连接配置")
             sys.exit()
@@ -313,17 +314,17 @@ class GetUser(threading.Thread):
             star_num = int(re.findall(r'<strong>(.*)</strong>.*收藏', about_page)[0])
             share_num = int(re.findall(r'<strong>(.*)</strong>.*分享', about_page)[0])
             browse_num = int(BS.find_all("span", class_="zg-gray-normal")[2].find("strong").get_text())
-            trade = BS.find("span", class_="business item").get_text() if BS.find("span",
+            trade = BS.find("span", class_="business item").get('title') if BS.find("span",
                                                                                   class_="business item") else ''
-            company = BS.find("span", class_="employment item").get_text() if BS.find("span",
+            company = BS.find("span", class_="employment item").get('title') if BS.find("span",
                                                                                       class_="employment item") else ''
-            school = BS.find("span", class_="education item").get_text() if BS.find("span",
+            school = BS.find("span", class_="education item").get('title') if BS.find("span",
                                                                                     class_="education item") else ''
-            major = BS.find("span", class_="education-extra item").get_text() if BS.find("span",
+            major = BS.find("span", class_="education-extra item").get('title') if BS.find("span",
                                                                                          class_="education-extra item") else ''
             job = BS.find("span", class_="position item").get_text() if BS.find("span",
                                                                                 class_="position item") else ''
-            location = BS.find("span", class_="location item").get_text() if BS.find("span",
+            location = BS.find("span", class_="location item").get('title') if BS.find("span",
                                                                                      class_="location item") else ''
             description = BS.find("div", class_="bio ellipsis").get('title') if BS.find("div",
                                                                                         class_="bio ellipsis") else ''
@@ -343,7 +344,7 @@ class GetUser(threading.Thread):
             replace_data = \
                 (pymysql.escape_string(name_url), nickname, self_domain, user_type,
                  gender, follower_num, following_num, agree_num, appreciate_num, star_num, share_num, browse_num,
-                 trade, company, school, major, job, location, description,
+                 trade, company, school, major, job, location, pymysql.escape_string(description),
                  ask_num, answer_num, article_num, collect_num, public_edit_num)
 
             replace_sql = '''REPLACE INTO
@@ -369,7 +370,6 @@ class GetUser(threading.Thread):
                 self.db.rollback()
                 print(err)
                 traceback.print_exc()
-                sys.exit()
 
         except Exception as err:
             print("获取数据出错，跳过用户")
