@@ -395,7 +395,7 @@ class GetUser(threading.Thread):
         self.obj.start()
 
 if __name__ == '__main__':
-    login = GetUser(999, "thread" + str(999))
+    login = GetUser(999, "登陆线程")
 
     threads = []
     for i in range(0, 4):
