@@ -6,7 +6,9 @@ import time
 import re
 import json
 import configparser
-
+import requests
+import http.cookiejar as cookielib
+import traceback
 
 class Login:
     headers = {
@@ -87,9 +89,11 @@ class Login:
         check_url = 'https://www.zhihu.com/settings/profile'
         try:
             login_check = self.__session.get(check_url, headers=self.headers, timeout=35)
-        except:
+        except Exception as err:
+            print(traceback.print_exc())
+            print(err)
             print("验证登陆失败，请检查网络")
-            os._exit()
+            sys.exit()
         print("验证登陆的http status code为：" + str(login_check.status_code))
         if int(login_check.status_code) == 200:
             return True
@@ -110,6 +114,7 @@ class Login:
                     self.username = input('请输入你的用户名\n>  ')
                     self.password = input("请输入你的密码\n>  ")
         except Exception as err:
+            print(traceback.print_exc())
             print(err)
             sys.exit()
 
