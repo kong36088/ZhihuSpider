@@ -5,6 +5,7 @@ from bs4 import BeautifulSoup
 import time
 import re
 import json
+import configparser
 
 
 class Login:
@@ -26,7 +27,23 @@ class Login:
     password = ''
 
     def __init__(self, session):
-        self.__session = session
+        if not session:
+            requests.adapters.DEFAULT_RETRIES = 5
+            self.session = requests.Session()
+            self.session.cookies = cookielib.LWPCookieJar(filename='cookie')
+            self.session.keep_alive = False
+            try:
+                self.session.cookies.load(ignore_discard=True)
+            except:
+                print('Cookie 未能加载')
+            finally:
+                pass
+        else:
+            self.__session = session
+
+        # 获取配置
+        self.config = configparser.ConfigParser()
+        self.config.read("config.ini")
 
     # 获取xsrf
     def get_xsrf(self):
@@ -56,13 +73,12 @@ class Login:
             f.close()
             # 用pillow 的 Image 显示验证码
             # 如果没有安装 pillow 到源代码所在的目录去找到验证码然后手动输入
-        try:
+        '''try:
             im = Image.open('captcha.jpg')
             im.show()
             im.close()
-        except:
-            print(u'请到 %s 目录找到captcha.jpg 手动输入' % os.path.abspath('captcha.jpg'))
-            sys.exit()
+        except:'''
+        print(u'请到 %s 目录找到captcha.jpg 手动输入' % os.path.abspath('captcha.jpg'))
         captcha = input("请输入验证码\n>")
         return captcha
 
@@ -81,9 +97,21 @@ class Login:
             return False
 
     # 进行模拟登陆
-    def do_login(self, username, password):
-        self.username = username
-        self.password = password
+    def do_login(self):
+        try:
+            # 模拟登陆
+            if self.check_login():
+                print('您已经登录')
+            else:
+                if self.config.get("zhihu_account", "username") and self.config.get("zhihu_account", "username"):
+                    self.username = self.config.get("zhihu_account", "username")
+                    self.password = self.config.get("zhihu_account", "password")
+                else:
+                    self.username = input('请输入你的用户名\n>  ')
+                    self.password = input("请输入你的密码\n>  ")
+        except Exception as err:
+            print(err)
+            sys.exit()
 
         if re.match(r"^1\d{10}$", self.username):
             print("手机登陆\n")
