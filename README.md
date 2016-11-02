@@ -1,3 +1,5 @@
+在我的博客里有代码的详细解读：[我用python爬了知乎十六万用户的数据](http://www.jwlchina.cn/2016/11/01/%E6%88%91%E7%94%A8python%E7%88%AC%E4%BA%86%E7%9F%A5%E4%B9%8E%E5%8D%81%E5%A4%9A%E4%B8%87%E7%94%A8%E6%88%B7%E7%9A%84%E6%95%B0%E6%8D%AE/)
+
 # 这是一个多线程抓取知乎用户的程序
 
 # Requirements
@@ -27,18 +29,22 @@ PyMySQL
 
 **需要安装mysql和redis**
 
-**配置`config.ini`文件**
+**配置`config.ini`文件，设置好mysql和redis，并且填写你的知乎帐号**
 
 **向数据库导入`init.sql`**
 
 # Run
 
 开始抓取数据:`python get_user.py`
+查看抓取数量:`python check_redis.py`
 
+# 效果
+![效果图1](http://www.jwlchina.cn/uploads/%E7%9F%A5%E4%B9%8E%E7%94%A8%E6%88%B7%E7%88%AC%E8%99%AB4.png)
+![效果图2](http://www.jwlchina.cn/uploads/%E7%9F%A5%E4%B9%8E%E7%94%A8%E6%88%B7%E7%88%AC%E8%99%AB5.png)
 
 # Docker
 
-用docker简单的搭建一个基础环境：
+嫌麻烦的可以参考一下我用docker简单的搭建一个基础环境：
 mysql和redis都是官方镜像
 ```bash
 docker run --name mysql -itd mysql:latest
