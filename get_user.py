@@ -68,25 +68,9 @@ class GetUser(threading.Thread):
         finally:
             pass
 
-        try:
-            # 创建login对象
-            lo = login.login.Login(self.session)
-
-            # 模拟登陆
-            if lo.check_login():
-                print('您已经登录')
-            else:
-                if self.config.get("zhihu_account", "username") and self.config.get("zhihu_account", "username"):
-                    username = self.config.get("zhihu_account", "username")
-                    password = self.config.get("zhihu_account", "password")
-                else:
-                    username = input('请输入你的用户名\n>  ')
-                    password = input("请输入你的密码\n>  ")
-
-                lo.do_login(username, password)
-
-        except:
-            sys.exit()
+        # 创建login对象
+        lo = login.login.Login(self.session)
+        lo.do_login()
 
         # 初始化redis连接
         try:
@@ -116,6 +100,7 @@ class GetUser(threading.Thread):
 
         # 初始化系统设置
         self.max_queue_len = int(self.config.get("sys", "max_queue_len"))
+
 
     # 获取首页html
     def get_index_page(self):
@@ -405,12 +390,13 @@ class GetUser(threading.Thread):
                     self.get_all_following(name_url)
             self.session.cookies.save()
 
-    # 多线程入口
     def run(self):
         print(self.name + " is running")
-        self.start()
+        self.obj.start()
 
 if __name__ == '__main__':
+    login = GetUser(999, "thread" + str(999))
+
     threads = []
     for i in range(0, 4):
         m = GetUser(i, "thread" + str(i))
