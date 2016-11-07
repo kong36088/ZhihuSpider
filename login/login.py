@@ -106,8 +106,9 @@ class Login:
             # 模拟登陆
             if self.check_login():
                 print('您已经登录')
+                return
             else:
-                if self.config.get("zhihu_account", "username") and self.config.get("zhihu_account", "username"):
+                if self.config.get("zhihu_account", "username") and self.config.get("zhihu_account", "password"):
                     self.username = self.config.get("zhihu_account", "username")
                     self.password = self.config.get("zhihu_account", "password")
                 else:
