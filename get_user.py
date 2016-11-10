@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import login.login
+from login.login import Login as Login
 import requests
 import http.cookiejar as cookielib
 import configparser
@@ -69,7 +69,7 @@ class GetUser(threading.Thread):
             pass
 
         # 创建login对象
-        lo = login.login.Login(self.session)
+        lo = Login(self.session)
         lo.do_login()
 
         # 初始化redis连接
@@ -100,7 +100,6 @@ class GetUser(threading.Thread):
 
         # 初始化系统设置
         self.max_queue_len = int(self.config.get("sys", "max_queue_len"))
-
 
     # 获取首页html
     def get_index_page(self):
@@ -299,20 +298,13 @@ class GetUser(threading.Thread):
             star_num = int(re.findall(r'<strong>(.*)</strong>.*收藏', about_page)[0])
             share_num = int(re.findall(r'<strong>(.*)</strong>.*分享', about_page)[0])
             browse_num = int(BS.find_all("span", class_="zg-gray-normal")[2].find("strong").get_text())
-            trade = BS.find("span", class_="business item").get('title') if BS.find("span",
-                                                                                  class_="business item") else ''
-            company = BS.find("span", class_="employment item").get('title') if BS.find("span",
-                                                                                      class_="employment item") else ''
-            school = BS.find("span", class_="education item").get('title') if BS.find("span",
-                                                                                    class_="education item") else ''
-            major = BS.find("span", class_="education-extra item").get('title') if BS.find("span",
-                                                                                         class_="education-extra item") else ''
-            job = BS.find("span", class_="position item").get_text() if BS.find("span",
-                                                                                class_="position item") else ''
-            location = BS.find("span", class_="location item").get('title') if BS.find("span",
-                                                                                     class_="location item") else ''
-            description = BS.find("div", class_="bio ellipsis").get('title') if BS.find("div",
-                                                                                        class_="bio ellipsis") else ''
+            trade = BS.find("span", class_="business item").get('title') if BS.find("span", class_="business item") else ''
+            company = BS.find("span", class_="employment item").get('title') if BS.find("span", class_="employment item") else ''
+            school = BS.find("span", class_="education item").get('title') if BS.find("span", class_="education item") else ''
+            major = BS.find("span", class_="education-extra item").get('title') if BS.find("span", class_="education-extra item") else ''
+            job = BS.find("span", class_="position item").get_text() if BS.find("span", class_="position item") else ''
+            location = BS.find("span", class_="location item").get('title') if BS.find("span", class_="location item") else ''
+            description = BS.find("div", class_="bio ellipsis").get('title') if BS.find("div", class_="bio ellipsis") else ''
             ask_num = int(BS.find_all("a", class_='item')[1].find("span").get_text()) if \
                 BS.find_all("a", class_='item')[
                     1] else int(0)
@@ -376,7 +368,7 @@ class GetUser(threading.Thread):
         print("获取到xsrf：" + self.xsrf)
 
     # 开始抓取用户，程序总入口
-    def start(self):
+    def entrance(self):
         while 1:
             if int(self.redis_con.llen("user_queue")) < 1:
                 self.get_index_page_user()
@@ -392,7 +384,8 @@ class GetUser(threading.Thread):
 
     def run(self):
         print(self.name + " is running")
-        self.obj.start()
+        self.entrance()
+
 
 if __name__ == '__main__':
     login = GetUser(999, "登陆线程")
