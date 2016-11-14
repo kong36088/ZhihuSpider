@@ -202,14 +202,20 @@ class GetUser(threading.Thread):
         if not follower_page:
             return
 
-        BS = BeautifulSoup(follower_page, 'html.parser')
-        # 获取关注者数量
-        follower_num = int(BS.find('span', text='关注者').find_parent().find('strong').get_text())
+        try:
+            BS = BeautifulSoup(follower_page, 'html.parser')
+            # 获取关注者数量
+            follower_num = int(BS.find('span', text='关注者').find_parent().find('strong').get_text())
+        except Exception as err:
+            print(err)
+            traceback.print_exc()
+            print("获取关注者列表失败，放弃")
+            return
+
         # 获取用户的hash_id
-        hash_id = \
-            json.loads(BS.select("#zh-profile-follows-list")[0].select(".zh-general-list")[0].get('data-init'))[
-                'params'][
-                'hash_id']
+        hash_id = json.loads(BS.select("#zh-profile-follows-list")[0].select(".zh-general-list")[0].get('data-init'))[
+            'params'][
+            'hash_id']
 
         # 获取关注者列表
         self.get_xsrf(follower_page)  # 获取xsrf
@@ -241,14 +247,20 @@ class GetUser(threading.Thread):
         # 判断是否获取到页面
         if not following_page:
             return
-        BS = BeautifulSoup(following_page, 'html.parser')
-        # 获取关注者数量
-        following_num = int(BS.find('span', text='关注了').find_parent().find('strong').get_text())
+        try:
+            BS = BeautifulSoup(following_page, 'html.parser')
+            # 获取关注者数量
+            following_num = int(BS.find('span', text='关注了').find_parent().find('strong').get_text())
+        except Exception as err:
+            print(err)
+            traceback.print_exc()
+            print("获取正在关注列表失败，放弃")
+            return
+
         # 获取用户的hash_id
-        hash_id = \
-            json.loads(BS.select("#zh-profile-follows-list")[0].select(".zh-general-list")[0].get('data-init'))[
-                'params'][
-                'hash_id']
+        hash_id = json.loads(BS.select("#zh-profile-follows-list")[0].select(".zh-general-list")[0].get('data-init'))[
+            'params'][
+            'hash_id']
 
         # 获取关注者列表
         self.get_xsrf(following_page)  # 获取xsrf
