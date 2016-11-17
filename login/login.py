@@ -62,9 +62,14 @@ class Login:
         BS = BeautifulSoup(html, 'html.parser')
         xsrf_input = BS.find(attrs={'name': '_xsrf'})
         pattern = r'value=\"(.*?)\"'
-        print(xsrf_input)
-        self.__xsrf = re.findall(pattern, str(xsrf_input))
-        return self.__xsrf[0]
+
+        self.__xsrf = re.findall(pattern, str(xsrf_input))[0]
+        print("获取到xsrf:" + str(self.__xsrf))
+
+        self.headers['X-Xsrftoken'] = self.__xsrf
+        self.__session.cookies.save()  # 获取完之后保存一下cookie
+
+        return self.__xsrf
 
     # 获取验证码
     def get_captcha(self):
@@ -122,7 +127,7 @@ class Login:
 
         if re.match(r"^1\d{10}$", self.username):
             print("手机登陆\n")
-            post_url = 'http://www.zhihu.com/login/phone_num'
+            post_url = 'https://www.zhihu.com/login/phone_num'
             postdata = {
                 '_xsrf': self.get_xsrf(),
                 'password': self.password,
@@ -140,16 +145,19 @@ class Login:
             }
 
         try:
-            login_page = self.__session.post(post_url, postdata, headers=self.headers, timeout=35)
-            login_text = json.loads(login_page.text.encode('latin-1').decode('unicode-escape'))
+            login_page = self.__session.post(post_url, postdata, allow_redirects=False, headers=self.headers, timeout=35)
+            print(login_page.text.encode('latin-1').decode('unicode-escape'))
             print(postdata)
-            print(login_text)
+            login_json = json.loads(login_page.text.encode('latin-1').decode('unicode-escape'))
+            print(login_json)
             # 需要输入验证码 r = 0为登陆成功代码
-            if login_text['r'] == 1:
+            if int(login_json['r']) == 1:
                 sys.exit()
-        except:
+        except Exception as err:
+            print(traceback.print_exc())
+            print(err)
             postdata['captcha'] = self.get_captcha()
-            login_page = self.__session.post(post_url, postdata, headers=self.headers, timeout=35)
-            print(json.loads(login_page.text.encode('latin-1').decode('unicode-escape')))
+            login_page = self.__session.post(post_url, postdata, allow_redirects=False, headers=self.headers, timeout=35)
+            print(login_page.text.encode('latin-1').decode('unicode-escape'))
         # 保存登陆cookie
         self.__session.cookies.save()
