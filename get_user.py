@@ -166,7 +166,7 @@ class GetUser(threading.Thread):
         if not index_html:
             return
         BS = BeautifulSoup(index_html, "html.parser")
-        self.get_xsrf(index_html)
+        self.get_xsrf()
         user_a = BS.find_all("a", class_="author-link")  # 获取用户的a标签
         for a in user_a:
             if a:
@@ -218,7 +218,7 @@ class GetUser(threading.Thread):
             'hash_id']
 
         # 获取关注者列表
-        self.get_xsrf(follower_page)  # 获取xsrf
+        self.get_xsrf()  # 获取xsrf
         post_url = 'https://www.zhihu.com/node/ProfileFollowersListV2'
         # 开始获取所有的关注者 math.ceil(follower_num/20)*20
         for i in range(0, math.ceil(follower_num / 20) * 20, 20):
@@ -263,7 +263,7 @@ class GetUser(threading.Thread):
             'hash_id']
 
         # 获取关注者列表
-        self.get_xsrf(following_page)  # 获取xsrf
+        self.get_xsrf()  # 获取xsrf
         post_url = 'https://www.zhihu.com/node/ProfileFolloweesListV2'
         # 开始获取所有的关注者 math.ceil(follower_num/20)*20
         for i in range(0, math.ceil(following_num / 20) * 20, 20):
@@ -294,7 +294,7 @@ class GetUser(threading.Thread):
             print("获取用户详情页面失败，跳过，name_url：" + name_url)
             return
 
-        self.get_xsrf(about_page)
+        self.get_xsrf()
 
         BS = BeautifulSoup(about_page, 'html.parser')
         # 获取页面的具体数据
@@ -369,10 +369,17 @@ class GetUser(threading.Thread):
             pass
 
     # 获取xsrf保存到header
-    def get_xsrf(self, html):
+    def get_xsrf(self):
         if self.xsrf:
             return self.xsrf
-        BS = BeautifulSoup(html, 'html.parser')
+
+        # 获取index页面来获取xsrf
+        index_page = self.get_index_page();
+        # 判断是否获取到index页面
+        if not index_page:
+            print("获取xsrf失败，退出");
+            sys.exit();
+        BS = BeautifulSoup(index_page, 'html.parser')
         xsrf_input = BS.find("input", attrs={'name': '_xsrf'})
         self.xsrf = xsrf_input.get("value")
         self.headers['X-Xsrftoken'] = self.xsrf
