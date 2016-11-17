@@ -10,6 +10,7 @@ import requests
 import http.cookiejar as cookielib
 import traceback
 
+
 class Login:
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/53.0.2785.143 Safari/537.36",
@@ -88,7 +89,7 @@ class Login:
     def check_login(self):
         check_url = 'https://www.zhihu.com/settings/profile'
         try:
-            login_check = self.__session.get(check_url, headers=self.headers, timeout=35)
+            login_check = self.__session.get(check_url, allow_redirects=False, headers=self.headers, timeout=35)
         except Exception as err:
             print(traceback.print_exc())
             print(err)
