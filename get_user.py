@@ -172,6 +172,7 @@ class GetUser(threading.Thread):
             if a:
                 self.add_wait_user(a.get('href'))
             else:
+                print("获取首页author-link失败，跳过")
                 continue
 
     # 加入带抓取用户队列，先用redis判断是否已被抓取过
@@ -389,7 +390,7 @@ class GetUser(threading.Thread):
     # 开始抓取用户，程序总入口
     def entrance(self):
         while 1:
-            if int(self.redis_con.llen("user_queue")) < 1:
+            if int(self.redis_con.llen("user_queue")) <= 20:
                 self.get_index_page_user()
             else:
                 # 出队列获取用户name_url redis取出的是byte，要decode成utf-8

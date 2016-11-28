@@ -152,10 +152,9 @@ class Login:
             print(login_json)
             # 需要输入验证码 r = 0为登陆成功代码
             if int(login_json['r']) == 1:
-                sys.exit()
-        except Exception as err:
+                sys.exit("需要填写验证码")
+        except:
             print(traceback.print_exc())
-            print(err)
             postdata['captcha'] = self.get_captcha()
             login_page = self.__session.post(post_url, postdata, allow_redirects=False, headers=self.headers, timeout=35)
             print(login_page.text.encode('latin-1').decode('unicode-escape'))
