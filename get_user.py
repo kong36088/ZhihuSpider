@@ -35,7 +35,6 @@ class GetUser(threading.Thread):
     xsrf = ''
     db = ''
     db_cursor = ''
-    counter = 0  # 记录多少用户被抓取
     max_queue_len = 1000  # redis带抓取用户队列最大长度
 
     def __init__(self, threadID=1, name=''):
@@ -118,7 +117,7 @@ class GetUser(threading.Thread):
 
     # 获取单个用户详情页面
     def get_user_page(self, name_url):
-        user_page_url = 'https://www.zhihu.com' + str(name_url) + '/about'
+        user_page_url = 'https://www.zhihu.com' + str(name_url) + '/logs'
         try:
             index_html = self.session.get(user_page_url, headers=self.headers, timeout=35)
         except Exception as err:
@@ -308,9 +307,12 @@ class GetUser(threading.Thread):
             following_num = int(BS.find('span', text='关注了').find_parent().find('strong').get_text())
             agree_num = int(re.findall(r'<strong>(.*)</strong>.*赞同', about_page)[0])
             appreciate_num = int(re.findall(r'<strong>(.*)</strong>.*感谢', about_page)[0])
-            star_num = int(re.findall(r'<strong>(.*)</strong>.*收藏', about_page)[0])
-            share_num = int(re.findall(r'<strong>(.*)</strong>.*分享', about_page)[0])
-            browse_num = int(BS.find_all("span", class_="zg-gray-normal")[2].find("strong").get_text())
+            # star_num = int(re.findall(r'<strong>(.*)</strong>.*收藏', about_page)[0])
+            # share_num = int(re.findall(r'<strong>(.*)</strong>.*分享', about_page)[0])
+            star_num = 0 # 知乎个人首页改版，这里暂时没有数据可以抓了
+            share_num = 0  #　知乎个人首页改版，这里暂时没有数据可以抓了
+            # browse_num = int(BS.find_all("span", class_="zg-gray-normal")[6].find("strong").get_text())
+            browse_num = 0 #　知乎个人首页改版，这里暂时没有数据可以抓了
             trade = BS.find("span", class_="business item").get('title') if BS.find("span", class_="business item") else ''
             company = BS.find("span", class_="employment item").get('title') if BS.find("span", class_="employment item") else ''
             school = BS.find("span", class_="education item").get('title') if BS.find("span", class_="education item") else ''
@@ -411,12 +413,13 @@ if __name__ == '__main__':
     login = GetUser(999, "登陆线程")
 
     threads = []
-    for i in range(0, 4):
+    threads_num = 4
+    for i in range(0, threads_num):
         m = GetUser(i, "thread" + str(i))
         threads.append(m)
 
-    for i in range(0, 4):
+    for i in range(0, threads_num):
         threads[i].start()
 
-    for i in range(0, 4):
+    for i in range(0, threads_num):
         threads[i].join()
