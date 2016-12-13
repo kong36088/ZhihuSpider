@@ -48,7 +48,7 @@ PyMySQL
 mysql和redis都是官方镜像
 ```bash
 docker run --name mysql -itd mysql:latest
-docker run --name redis -itd mysql:latest
+docker run --name redis -itd redis:latest
 ```
 
 
