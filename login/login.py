@@ -136,7 +136,7 @@ class Login:
             }
         else:
             print("邮箱登陆\n")
-            post_url = 'http://www.zhihu.com/login/email'
+            post_url = 'https://www.zhihu.com/login/email'
             postdata = {
                 '_xsrf': self.get_xsrf(),
                 'password': self.password,
