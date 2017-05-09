@@ -3,7 +3,7 @@ CREATE TABLE IF NOT EXISTS `user` (
 	`nickname` VARCHAR(100) NOT NULL,
 	`self_domain` VARCHAR(100) NOT NULL COMMENT '个人的个性化域名',
 	`user_type` VARCHAR(50) NOT NULL COMMENT '个人or企业',
-	`gender` INT(1) NOT NULL DEFAULT 1 COMMENT '1男2女',
+	`gender` INT(1) NOT NULL DEFAULT 1 COMMENT '0女1男-1未知',
 	`follower` INT(11) NOT NULL COMMENT '粉丝人数',
 	`following` INT(11) NOT NULL COMMENT '关注人数',
 	`agree_num` INT(11) NOT NULL COMMENT '赞同数',

@@ -108,6 +108,7 @@ class Login:
 
     # 进行模拟登陆
     def do_login(self):
+        self.headers["X-Requested-With"] = "XMLHttpRequest"
         try:
             # 模拟登陆
             if self.check_login():
@@ -145,8 +146,8 @@ class Login:
             }
 
         try:
-            login_page = self.__session.post(post_url, postdata, allow_redirects=False, headers=self.headers, timeout=35)
-            print(login_page.text.encode('latin-1').decode('unicode-escape'))
+            login_page = self.__session.post(post_url, postdata, headers=self.headers, timeout=35)
+            print(login_page.text)
             print(postdata)
             login_json = json.loads(login_page.text.encode('latin-1').decode('unicode-escape'))
             print(login_json)
@@ -154,9 +155,8 @@ class Login:
             if int(login_json['r']) == 1:
                 sys.exit("需要填写验证码")
         except:
-            print(traceback.print_exc())
             postdata['captcha'] = self.get_captcha()
-            login_page = self.__session.post(post_url, postdata, allow_redirects=False, headers=self.headers, timeout=35)
+            login_page = self.__session.post(post_url, postdata, headers=self.headers, timeout=35)
             print(login_page.text.encode('latin-1').decode('unicode-escape'))
         # 保存登陆cookie
         self.__session.cookies.save()

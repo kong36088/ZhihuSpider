@@ -15,8 +15,8 @@ import threading
 
 
 class GetUser(threading.Thread):
-    session = ''
-    config = ''
+    session = None
+    config = None
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/53.0.2785.143 Safari/537.36",
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
@@ -33,8 +33,8 @@ class GetUser(threading.Thread):
     redis_con = ''
     counter = 0  # 被抓取用户计数
     xsrf = ''
-    db = ''
-    db_cursor = ''
+    db = None
+    db_cursor = None
     max_queue_len = 1000  # redis带抓取用户队列最大长度
 
     def __init__(self, threadID=1, name=''):
@@ -78,7 +78,7 @@ class GetUser(threading.Thread):
             self.redis_con = redis.Redis(host=redis_host, port=redis_port, db=0)
             # 刷新redis库
             # self.redis_con.flushdb()
-        except:
+        except Exception as err:
             print("请安装redis或检查redis连接配置")
             sys.exit()
 
@@ -93,7 +93,7 @@ class GetUser(threading.Thread):
             self.db = pymysql.connect(host=db_host, port=db_port, user=db_user, passwd=db_pass, db=db_db,
                                       charset=db_charset)
             self.db_cursor = self.db.cursor()
-        except:
+        except Exception as err:
             print("请检查数据库配置")
             sys.exit()
 
@@ -102,7 +102,7 @@ class GetUser(threading.Thread):
 
     # 获取首页html
     def get_index_page(self):
-        index_url = 'https://www.zhihu.com/'
+        index_url = 'https://www.zhihu.com'
         try:
             index_html = self.session.get(index_url, headers=self.headers, timeout=35)
         except Exception as err:
@@ -112,50 +112,7 @@ class GetUser(threading.Thread):
             traceback.print_exc()
             return None
         finally:
-            pass
-        return index_html.text
-
-    # 获取单个用户详情页面
-    def get_user_page(self, name_url):
-        user_page_url = 'https://www.zhihu.com' + str(name_url) + '/logs'
-        try:
-            index_html = self.session.get(user_page_url, headers=self.headers, timeout=35)
-        except Exception as err:
-            # 出现异常重试
-            print("失败name_url：" + str(name_url) + "获取页面失败，放弃该用户")
-            print(err)
-            traceback.print_exc()
-            return None
-        finally:
-            pass
-        return index_html.text
-
-    # 获取粉丝页面
-    def get_follower_page(self, name_url):
-        user_page_url = 'https://www.zhihu.com' + str(name_url) + '/followers'
-        try:
-            index_html = self.session.get(user_page_url, headers=self.headers, timeout=35)
-        except Exception as err:
-            # 出现异常重试
-            print("失败name_url：" + str(name_url) + "获取页面失败，放弃该用户")
-            print(err)
-            traceback.print_exc()
-            return None
-        finally:
-            pass
-        return index_html.text
-
-    def get_following_page(self, name_url):
-        user_page_url = 'https://www.zhihu.com' + str(name_url) + '/followers'
-        try:
-            index_html = self.session.get(user_page_url, headers=self.headers, timeout=35)
-        except Exception as err:
-            # 出现异常重试
-            print("失败name_url：" + str(name_url) + "获取页面失败，放弃该用户")
-            print(err)
-            traceback.print_exc()
-            return None
-        finally:
+            self.save_cookie()
             pass
         return index_html.text
 
@@ -165,14 +122,127 @@ class GetUser(threading.Thread):
         if not index_html:
             return
         BS = BeautifulSoup(index_html, "html.parser")
-        self.get_xsrf()
-        user_a = BS.find_all("a", class_="author-link")  # 获取用户的a标签
+        user_a = BS.find_all("a", class_="UserLink-link")  # 获取用户的a标签
         for a in user_a:
             if a:
-                self.add_wait_user(a.get('href'))
+                href = a.get('href')
+                self.add_wait_user(href[(href.rindex('/'))+1:])
             else:
                 print("获取首页author-link失败，跳过")
                 continue
+
+    # 获取粉丝页面，接口信息
+    def get_follower_page(self, name_url, offset=0, limit=20):
+        user_page_url = 'https://www.zhihu.com/api/v4/members/' + str(
+            name_url) + '/followers?include=data%5B*%5D.answer_count%2Carticles_count%2Cgender%2Cfollower_count%2Cis_followed%2Cis_following%2Cbadge%5B%3F(type%3Dbest_answerer)%5D.topics&offset=' + str(
+            offset) + '&limit=' + str(limit)
+        try:
+            index_html = self.session.get(user_page_url, headers=self.headers, timeout=35)
+        except Exception as err:
+            # 出现异常重试
+            print("失败name_url：" + str(name_url) + "获取页面失败，放弃该用户")
+            print(err)
+            traceback.print_exc()
+            return None
+        finally:
+            self.save_cookie()
+            pass
+        return index_html.text
+
+    # 分析粉丝接口获取用户的所有粉丝用户
+    # @param follower_page get_follower_page()中获取到的页面，这里获取用户hash_id请求粉丝接口获取粉丝信息
+    def get_all_follower(self, name_url):
+        follower_api = self.get_follower_page(name_url)
+        # 判断是否获取到页面
+        if not follower_api:
+            return
+
+        try:
+            data = json.loads(follower_api)
+            # 获取关注者数量
+            follower_num = int(data['paging']['totals'])
+            is_end = bool(data['paging']['is_end'])
+        except Exception as err:
+            print(err)
+            traceback.print_exc()
+            print("获取关注者列表失败，放弃")
+            return
+
+        # 获取关注者列表
+        per_page = 20
+        # 开始获取所有的关注者 math.ceil(follower_num/20)*20
+        for i in range(0, int(math.ceil(follower_num / per_page)) * per_page, per_page):
+            try:
+                follower_api = self.get_follower_page(name_url, i, per_page)
+                data = json.loads(follower_api)
+                is_end = bool(data['paging']['is_end'])
+
+                for user in data['data']:
+                    self.add_wait_user(user['url_token'])  # 保存到redis
+
+                if is_end:
+                    break
+            except Exception as err:
+                print("获取关注者列表失败，继续循环")
+                print(err)
+                continue
+                pass
+
+    # 获取正在关注api
+    def get_following_page(self, name_url, offset=0, limit=20):
+        user_page_url = 'https://www.zhihu.com/api/v4/members/' + str(
+            name_url) + '/followees?include=data%5B*%5D.answer_count%2Carticles_count%2Cgender%2Cfollower_count%2Cis_followed%2Cis_following%2Cbadge%5B%3F(type%3Dbest_answerer)%5D.topics&offset=' + str(
+            offset) + '&limit=' + str(limit)
+        try:
+            index_html = self.session.get(user_page_url, headers=self.headers, timeout=35)
+        except Exception as err:
+            # 出现异常重试
+            print("失败name_url：" + str(name_url) + "获取页面失败，放弃该用户")
+            print(err)
+            traceback.print_exc()
+            return None
+        finally:
+            self.save_cookie()
+            pass
+        return index_html.text
+
+    # 获取正在关注列表
+    def get_all_following(self, name_url):
+        following_api = self.get_following_page(name_url)
+        # 判断是否获取到页面
+        if not following_api:
+            return
+
+        try:
+            data = json.loads(following_api)
+            # 获取关注者数量
+            following_num = int(data['paging']['totals'])
+            is_end = bool(data['paging']['is_end'])
+        except Exception as err:
+            print(err)
+            traceback.print_exc()
+            print("获取关注者列表失败，放弃")
+            return
+
+        # 获取关注者列表
+        per_page = 20
+        # 开始获取所有的关注者 math.ceil(follower_num/20)*20
+        for i in range(0, int(math.ceil(following_num / per_page)) * per_page, per_page):
+            try:
+                following_api = self.get_following_page(name_url, i, per_page)
+                data = json.loads(following_api)
+                is_end = bool(data['paging']['is_end'])
+
+                for user in data['data']:
+                    self.add_wait_user(user['url_token'])  # 保存到redis
+
+                if is_end:
+                    break
+            except Exception as err:
+                print("获取关注者列表失败，继续循环")
+                print(err)
+                continue
+                pass
 
     # 加入带抓取用户队列，先用redis判断是否已被抓取过
     def add_wait_user(self, name_url):
@@ -194,144 +264,60 @@ class GetUser(threading.Thread):
             self.redis_con.hdel('already_get_user', name_url)
         self.threadLock.release()
 
-    # 分析粉丝页面获取用户的所有粉丝用户
-    # @param follower_page get_follower_page()中获取到的页面，这里获取用户hash_id请求粉丝接口获取粉丝信息
-    def get_all_follower(self, name_url):
-        follower_page = self.get_follower_page(name_url)
-        # 判断是否获取到页面
-        if not follower_page:
-            return
-
+    # 获取单个用户详情页面
+    def get_user_page(self, name_url):
+        user_page_url = 'https://www.zhihu.com/api/v4/members/' + str(
+            name_url) + '?include=locations%2Cemployments%2Cgender%2Ceducations%2Cbusiness%2Cvoteup_count%2Cthanked_Count%2Cfollower_count%2Cfollowing_count%2Ccover_url%2Cfollowing_topic_count%2Cfollowing_question_count%2Cfollowing_favlists_count%2Cfollowing_columns_count%2Cavatar_hue%2Canswer_count%2Carticles_count%2Cpins_count%2Cquestion_count%2Ccommercial_question_count%2Cfavorite_count%2Cfavorited_count%2Clogs_count%2Cmarked_answers_count%2Cmarked_answers_text%2Cmessage_thread_token%2Caccount_status%2Cis_active%2Cis_force_renamed%2Cis_bind_sina%2Csina_weibo_url%2Csina_weibo_name%2Cshow_sina_weibo%2Cis_blocking%2Cis_blocked%2Cis_following%2Cis_followed%2Cmutual_followees_count%2Cvote_to_count%2Cvote_from_count%2Cthank_to_count%2Cthank_from_count%2Cthanked_count%2Cdescription%2Chosted_live_count%2Cparticipated_live_count%2Callow_message%2Cindustry_category%2Corg_name%2Corg_homepage%2Cbadge%5B%3F(type%3Dbest_answerer)%5D.topics'
         try:
-            BS = BeautifulSoup(follower_page, 'html.parser')
-            # 获取关注者数量
-            follower_num = int(BS.find('span', text='关注者').find_parent().find('strong').get_text())
+            index_html = self.session.get(user_page_url, headers=self.headers, timeout=35)
         except Exception as err:
+            # 出现异常重试
+            print("失败name_url：" + str(name_url) + "获取页面失败，放弃该用户")
             print(err)
             traceback.print_exc()
-            print("获取关注者列表失败，放弃")
-            return
-
-        # 获取用户的hash_id
-        hash_id = json.loads(BS.select("#zh-profile-follows-list")[0].select(".zh-general-list")[0].get('data-init'))[
-            'params'][
-            'hash_id']
-
-        # 获取关注者列表
-        self.get_xsrf()  # 获取xsrf
-        post_url = 'https://www.zhihu.com/node/ProfileFollowersListV2'
-        # 开始获取所有的关注者 math.ceil(follower_num/20)*20
-        for i in range(0, math.ceil(follower_num / 20) * 20, 20):
-            post_data = {
-                'method': 'next',
-                'params': json.dumps({"offset": i, "order_by": "created", "hash_id": hash_id})
-            }
-            try:
-                j = self.session.post(post_url, params=post_data, headers=self.headers, timeout=35).text.encode(
-                    'latin-1').decode(
-                    'unicode-escape')
-                pattern = re.compile(r"class=\"zm-item-link-avatar\"[^\"]*\"([^\"]*)", re.DOTALL)
-                j = pattern.findall(j)
-                for user in j:
-                    user = user.replace('\\', '')
-                    self.add_wait_user(user)  # 保存到redis
-            except Exception as err:
-                print("获取正在关注失败")
-                print(err)
-                traceback.print_exc()
-                pass
-
-    # 获取正在关注列表
-    def get_all_following(self, name_url):
-        following_page = self.get_following_page(name_url)
-        # 判断是否获取到页面
-        if not following_page:
-            return
-        try:
-            BS = BeautifulSoup(following_page, 'html.parser')
-            # 获取关注者数量
-            following_num = int(BS.find('span', text='关注了').find_parent().find('strong').get_text())
-        except Exception as err:
-            print(err)
-            traceback.print_exc()
-            print("获取正在关注列表失败，放弃")
-            return
-
-        # 获取用户的hash_id
-        hash_id = json.loads(BS.select("#zh-profile-follows-list")[0].select(".zh-general-list")[0].get('data-init'))[
-            'params'][
-            'hash_id']
-
-        # 获取关注者列表
-        self.get_xsrf()  # 获取xsrf
-        post_url = 'https://www.zhihu.com/node/ProfileFolloweesListV2'
-        # 开始获取所有的关注者 math.ceil(follower_num/20)*20
-        for i in range(0, math.ceil(following_num / 20) * 20, 20):
-            post_data = {
-                'method': 'next',
-                'params': json.dumps({"offset": i, "order_by": "created", "hash_id": hash_id})
-            }
-            try:
-                j = self.session.post(post_url, params=post_data, headers=self.headers, timeout=35).text.encode(
-                    'latin-1').decode(
-                    'unicode-escape')
-                pattern = re.compile(r"class=\"zm-item-link-avatar\"[^\"]*\"([^\"]*)", re.DOTALL)
-                j = pattern.findall(j)
-                for user in j:
-                    user = user.replace('\\', '')
-                    self.add_wait_user(user)  # 保存到redis
-            except Exception as err:
-                print("获取正在关注失败")
-                print(err)
-                traceback.print_exc()
-                pass
+            return None
+        finally:
+            self.save_cookie()
+            pass
+        return index_html.text
 
     # 分析about页面，获取用户详细资料
     def get_user_info(self, name_url):
-        about_page = self.get_user_page(name_url)
+        about_user_api = self.get_user_page(name_url)
         # 判断是否获取到页面
-        if not about_page:
+        if not about_user_api:
             print("获取用户详情页面失败，跳过，name_url：" + name_url)
             return
 
-        self.get_xsrf()
-
-        BS = BeautifulSoup(about_page, 'html.parser')
         # 获取页面的具体数据
         try:
-            nickname = BS.find("a", class_="name").get_text() if BS.find("a", class_="name") else ''
-            user_type = name_url[1:name_url.index('/', 1)]
-            self_domain = name_url[name_url.index('/', 1) + 1:]
-            gender = 2 if BS.find("i", class_="icon icon-profile-female") else (1 if BS.find("i", class_="icon icon-profile-male") else 3)
-            follower_num = int(BS.find('span', text='关注者').find_parent().find('strong').get_text())
-            following_num = int(BS.find('span', text='关注了').find_parent().find('strong').get_text())
-            agree_num = int(re.findall(r'<strong>(.*)</strong>.*赞同', about_page)[0])
-            appreciate_num = int(re.findall(r'<strong>(.*)</strong>.*感谢', about_page)[0])
-            # star_num = int(re.findall(r'<strong>(.*)</strong>.*收藏', about_page)[0])
+            user_info = json.loads(about_user_api)
+
+            nickname = user_info['name'] if 'name' in user_info else ''
+            user_type = user_info['type'] if 'type' in user_info else 'people'
+            self_domain = user_type + '/' + user_info['url_token']  # 个性域名
+            gender = int(user_info['gender']) if 'gender' in user_info else -1  # 性别
+            follower_num = int(user_info['following_count']) if 'following_count' in user_info else 0  # 粉丝
+            following_num = int(user_info['follower_count'])  # 关注
+            agree_num = int(user_info['voteup_count'])  # 赞同
+            appreciate_num = int(user_info['thanked_count'])  # 感谢
+            star_num = int(user_info['favorited_count'])  # 收藏
             # share_num = int(re.findall(r'<strong>(.*)</strong>.*分享', about_page)[0])
-            star_num = 0 # 知乎个人首页改版，这里暂时没有数据可以抓了
-            share_num = 0  #　知乎个人首页改版，这里暂时没有数据可以抓了
+            share_num = 0  # 知乎个人首页改版，这里暂时没有数据可以抓了
             # browse_num = int(BS.find_all("span", class_="zg-gray-normal")[6].find("strong").get_text())
-            browse_num = 0 #　知乎个人首页改版，这里暂时没有数据可以抓了
-            trade = BS.find("span", class_="business item").get('title') if BS.find("span", class_="business item") else ''
-            company = BS.find("span", class_="employment item").get('title') if BS.find("span", class_="employment item") else ''
-            school = BS.find("span", class_="education item").get('title') if BS.find("span", class_="education item") else ''
-            major = BS.find("span", class_="education-extra item").get('title') if BS.find("span", class_="education-extra item") else ''
-            job = BS.find("span", class_="position item").get_text() if BS.find("span", class_="position item") else ''
-            location = BS.find("span", class_="location item").get('title') if BS.find("span", class_="location item") else ''
-            description = BS.find("div", class_="bio ellipsis").get('title') if BS.find("div", class_="bio ellipsis") else ''
-            ask_num = int(BS.find_all("a", class_='item')[1].find("span").get_text()) if \
-                BS.find_all("a", class_='item')[
-                    1] else int(0)
-            answer_num = int(BS.find_all("a", class_='item')[2].find("span").get_text()) if \
-                BS.find_all("a", class_='item')[
-                    2] else int(0)
-            article_num = int(BS.find_all("a", class_='item')[3].find("span").get_text()) if \
-                BS.find_all("a", class_='item')[3] else int(0)
-            collect_num = int(BS.find_all("a", class_='item')[4].find("span").get_text()) if \
-                BS.find_all("a", class_='item')[4] else int(0)
-            public_edit_num = int(BS.find_all("a", class_='item')[5].find("span").get_text()) if \
-                BS.find_all("a", class_='item')[5] else int(0)
+            browse_num = 0  # 知乎个人首页改版，这里暂时没有数据可以抓了
+            trade = user_info['business']['name'] if 'business' in user_info else ''
+            company = user_info['employments'][0]['company']['name'] if 0 in user_info['employments'] else ''
+            school = user_info['educations'][0]['school']['name'] if 0 in user_info['educations'] else ''
+            major = user_info['educations'][0]['major']['name'] if 0 in user_info['educations'] else ''
+            job = user_info['employments'][0]['job']['name'] if 0 in user_info['employments'] else ''
+            location = user_info['locations'][0]['name'] if 0 in user_info['locations'] else ''
+            description = user_info['description'] if 'description' in user_info else ''
+            ask_num = int(user_info['question_count'])
+            answer_num = int(user_info['answer_count'])
+            article_num = int(user_info['articles_count'])
+            collect_num = int(user_info['favorite_count'])
+            public_edit_num = int(user_info['logs_count'])
 
             replace_data = \
                 (pymysql.escape_string(name_url), nickname, self_domain, user_type,
@@ -371,23 +357,8 @@ class GetUser(threading.Thread):
             traceback.print_exc()
             pass
 
-    # 获取xsrf保存到header
-    def get_xsrf(self):
-        if self.xsrf:
-            return self.xsrf
-
-        # 获取index页面来获取xsrf
-        index_page = self.get_index_page();
-        # 判断是否获取到index页面
-        if not index_page:
-            print("获取xsrf失败，退出");
-            sys.exit();
-        BS = BeautifulSoup(index_page, 'html.parser')
-        xsrf_input = BS.find("input", attrs={'name': '_xsrf'})
-        self.xsrf = xsrf_input.get("value")
-        self.headers['X-Xsrftoken'] = self.xsrf
+    def save_cookie(self):
         self.session.cookies.save()
-        print("获取到xsrf：" + self.xsrf)
 
     # 开始抓取用户，程序总入口
     def entrance(self):
@@ -402,7 +373,7 @@ class GetUser(threading.Thread):
                 if int(self.redis_con.llen("user_queue")) <= int(self.max_queue_len):
                     self.get_all_follower(name_url)
                     self.get_all_following(name_url)
-            self.session.cookies.save()
+            self.save_cookie()
 
     def run(self):
         print(self.name + " is running")
@@ -412,8 +383,10 @@ class GetUser(threading.Thread):
 if __name__ == '__main__':
     login = GetUser(999, "登陆线程")
 
+    login.get_index_page_user()
+
     threads = []
-    threads_num = 4
+    threads_num = 2
     for i in range(0, threads_num):
         m = GetUser(i, "thread" + str(i))
         threads.append(m)
