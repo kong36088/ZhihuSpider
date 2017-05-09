@@ -28,11 +28,11 @@ PyMySQL
 
 测试运行环境python3.5，不保证其他运行环境能完美运行
 
-**需要安装mysql和redis**
+1.**需要安装mysql和redis**
 
-**配置`config.ini`文件，设置好mysql和redis，并且填写你的知乎帐号**
+2.**配置`config.ini`文件，设置好mysql和redis，并且填写你的知乎帐号（master分支新版爬虫不需要登陆，但是可能会有时效问题，可以切换至new-ui分支使用）**
 
-**向数据库导入`init.sql`**
+3.**向数据库导入`init.sql`**
 
 # Run
 
