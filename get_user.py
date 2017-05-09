@@ -27,7 +27,8 @@ class GetUser(threading.Thread):
         "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
         "Pragma": "no-cache",
         "Accept-Encoding": "gzip, deflate, br",
-        'Connection': 'close'
+        'Connection': 'close',
+        'authorization': 'oauth c3cef7c66a1843f8b3a9e6a1e3160e20'
     }
     retry = 0  # 重试次数
     redis_con = ''
@@ -68,8 +69,10 @@ class GetUser(threading.Thread):
             pass
 
         # 创建login对象
+        '''
         lo = Login(self.session)
         lo.do_login()
+        '''
 
         # 初始化redis连接
         try:
@@ -102,7 +105,7 @@ class GetUser(threading.Thread):
 
     # 获取首页html
     def get_index_page(self):
-        index_url = 'https://www.zhihu.com'
+        index_url = 'https://www.zhihu.com/explore'
         try:
             index_html = self.session.get(index_url, headers=self.headers, timeout=35)
         except Exception as err:
@@ -122,7 +125,7 @@ class GetUser(threading.Thread):
         if not index_html:
             return
         BS = BeautifulSoup(index_html, "html.parser")
-        user_a = BS.find_all("a", class_="UserLink-link")  # 获取用户的a标签
+        user_a = BS.find_all("a", class_="author-link")  # 获取用户的a标签
         for a in user_a:
             if a:
                 href = a.get('href')
@@ -247,14 +250,12 @@ class GetUser(threading.Thread):
     # 加入带抓取用户队列，先用redis判断是否已被抓取过
     def add_wait_user(self, name_url):
         # 判断是否已抓取
-        self.threadLock.acquire()
         if not self.redis_con.hexists('already_get_user', name_url):
             self.counter += 1
             print(name_url + " 加入队列")
             self.redis_con.hset('already_get_user', name_url, 1)
             self.redis_con.lpush('user_queue', name_url)
             print("添加用户 " + name_url + "到队列")
-        self.threadLock.release()
 
     # 获取页面出错移出redis
     def del_already_user(self, name_url):
@@ -363,7 +364,7 @@ class GetUser(threading.Thread):
     # 开始抓取用户，程序总入口
     def entrance(self):
         while 1:
-            if int(self.redis_con.llen("user_queue")) <= 20:
+            if int(self.redis_con.llen("user_queue")) <= 5:
                 self.get_index_page_user()
             else:
                 # 出队列获取用户name_url redis取出的是byte，要decode成utf-8
