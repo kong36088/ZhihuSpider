@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS `user` (
 	`major` VARCHAR(50) NOT NULL COMMENT '专业',
 	`job` VARCHAR(50) NOT NULL COMMENT '工作',
   `location` VARCHAR(50) NOT NULL COMMENT '位置',
-	`description` VARCHAR(100) NOT NULL COMMENT '一句话介绍自己',
+	`description` TEXT NOT NULL COMMENT '一句话介绍自己',
 	`update_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `ask_num` INT(11) NOT NULL COMMENT '提问数',
   `answer_num` INT(11) NOT NULL COMMENT '回答数',
