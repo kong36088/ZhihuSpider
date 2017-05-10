@@ -8,10 +8,11 @@ import sys
 import redis
 import json
 import math
-import re
 import pymysql
 import traceback
 import threading
+import time
+import random
 
 
 class GetUser(threading.Thread):
@@ -30,6 +31,7 @@ class GetUser(threading.Thread):
         'Connection': 'close',
         'authorization': 'oauth c3cef7c66a1843f8b3a9e6a1e3160e20'
     }
+
     retry = 0  # 重试次数
     redis_con = ''
     counter = 0  # 被抓取用户计数
@@ -37,6 +39,12 @@ class GetUser(threading.Thread):
     db = None
     db_cursor = None
     max_queue_len = 1000  # redis带抓取用户队列最大长度
+    ua = (
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_7_0) AppleWebKit/535.11 (KHTML, like Gecko) Chrome/17.0.963.56 Safari/535.11',
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/53.0.2785.143 Safari/537.36',
+        'Mozilla/5.0 (Windows; U; Windows NT 6.1; en-us) AppleWebKit/534.50 (KHTML, like Gecko) Version/5.1 Safari/534.50',
+        'Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 5.1; 360SE)',
+    )
 
     def __init__(self, threadID=1, name=''):
         # 多线程
@@ -129,7 +137,7 @@ class GetUser(threading.Thread):
         for a in user_a:
             if a:
                 href = a.get('href')
-                self.add_wait_user(href[(href.rindex('/'))+1:])
+                self.add_wait_user(href[(href.rindex('/')) + 1:])
             else:
                 print("获取首页author-link失败，跳过")
                 continue
@@ -290,6 +298,8 @@ class GetUser(threading.Thread):
             print("获取用户详情页面失败，跳过，name_url：" + name_url)
             return
 
+        # 减慢爬虫速度
+        time.sleep(random.random() * 3)
         # 获取页面的具体数据
         try:
             user_info = json.loads(about_user_api)
@@ -361,6 +371,11 @@ class GetUser(threading.Thread):
     def save_cookie(self):
         self.session.cookies.save()
 
+    def set_random_ua(self):
+        length = len(self.ua)
+        rand = random.randint(0, length-1)
+        self.headers['User-Agent'] = self.ua[rand]
+
     # 开始抓取用户，程序总入口
     def entrance(self):
         while 1:
@@ -374,6 +389,7 @@ class GetUser(threading.Thread):
                 if int(self.redis_con.llen("user_queue")) <= int(self.max_queue_len):
                     self.get_all_follower(name_url)
                     self.get_all_following(name_url)
+            self.set_random_ua()
             self.save_cookie()
 
     def run(self):
@@ -383,8 +399,6 @@ class GetUser(threading.Thread):
 
 if __name__ == '__main__':
     login = GetUser(999, "登陆线程")
-
-    login.get_index_page_user()
 
     threads = []
     threads_num = 2

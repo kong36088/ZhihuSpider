@@ -21,7 +21,8 @@ requests \
 beautifulsoup4 \
 html5lib \
 redis \
-PyMySQL
+PyMySQL \
+fake-useragent
 ```
 
 运行环境需要支持中文
