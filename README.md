@@ -1,3 +1,41 @@
+# ZhihuSpider
+User spider for www.zhihu.com
+## 1.Install python3 and packages
+Make sure you have installed python3.
+Using pip to install dependencies.
+``` bash
+pip install Image requests beautifulsoup4 html5lib redis PyMySQL 
+```
+## 2.Database Config
+Install `mysql`,create your database.
+Import `init.sql` to create your data table.
+
+## 3.Install redis
+``` bash
+# (ubuntu)
+apt-get install redis
+
+# or (centos)
+
+yum install redis
+
+# or (macos)
+brew install redis
+```
+## 4.Config your application
+Complete config.ini
+
+## 5.Get start
+``` bash
+python get_user.py
+
+# or command python3
+
+python3 get_user.py
+```
+
+## 中文
+
 在我的博客里有代码的详细解读：[我用python爬了知乎一百万用户的数据](http://www.jwlchina.cn/2016/11/04/%E6%88%91%E7%94%A8python%E7%88%AC%E4%BA%86%E7%9F%A5%E4%B9%8E%E4%B8%80%E7%99%BE%E4%B8%87%E7%94%A8%E6%88%B7%E7%9A%84%E6%95%B0%E6%8D%AE/)
 
 数据统计分析：[百万知乎用户数据分析](http://zhihu.jwlchina.cn/)
@@ -15,14 +53,7 @@
 
 pip安装所有依赖包：
 ``` bash
-pip install \
-Image \
-requests \
-beautifulsoup4 \
-html5lib \
-redis \
-PyMySQL \
-fake-useragent
+pip install Image requests beautifulsoup4 html5lib redis PyMySQL 
 ```
 
 运行环境需要支持中文
