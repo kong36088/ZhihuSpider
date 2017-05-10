@@ -29,7 +29,7 @@ class GetUser(threading.Thread):
         "Pragma": "no-cache",
         "Accept-Encoding": "gzip, deflate, br",
         'Connection': 'close',
-        'authorization': 'oauth c3cef7c66a1843f8b3a9e6a1e3160e20'
+        # 'authorization': 'oauth c3cef7c66a1843f8b3a9e6a1e3160e20'
     }
 
     retry = 0  # 重试次数
@@ -77,10 +77,10 @@ class GetUser(threading.Thread):
             pass
 
         # 创建login对象
-        '''
+
         lo = Login(self.session)
         lo.do_login()
-        '''
+
 
         # 初始化redis连接
         try:
