@@ -318,10 +318,10 @@ class GetUser(threading.Thread):
             # browse_num = int(BS.find_all("span", class_="zg-gray-normal")[6].find("strong").get_text())
             browse_num = 0  # 知乎个人首页改版，这里暂时没有数据可以抓了
             trade = user_info['business']['name'] if 'business' in user_info else ''
-            company = user_info['employments'][0]['company']['name'] if len(user_info['employments']) > 0 else ''
-            school = user_info['educations'][0]['school']['name'] if len(user_info['educations']) > 0 else ''
-            major = user_info['educations'][0]['major']['name'] if len(user_info['educations']) > 0 else ''
-            job = user_info['employments'][0]['job']['name'] if len(user_info['employments']) > 0 else ''
+            company = user_info['employments'][0]['company']['name'] if len(user_info['employments']) > 0 and 'company' in user_info['employments'][0]  else ''
+            school = user_info['educations'][0]['school']['name'] if len(user_info['educations']) > 0 and 'school' in user_info['educations'][0]  else ''
+            major = user_info['educations'][0]['major']['name'] if len(user_info['educations']) > 0 and 'major' in user_info['educations'][0] else ''
+            job = user_info['employments'][0]['job']['name'] if len(user_info['employments']) > 0 and 'job' in user_info['employments'][0] else ''
             location = user_info['locations'][0]['name'] if len(user_info['locations']) > 0 else ''
             description = user_info['description'] if 'description' in user_info else ''
             ask_num = int(user_info['question_count'])
@@ -361,6 +361,7 @@ class GetUser(threading.Thread):
                 traceback.print_exc()
 
         except Exception as err:
+            print(user_info)
             print("获取数据出错，跳过用户")
             self.redis_con.hdel("already_get_user", name_url)
             self.del_already_user(name_url)
