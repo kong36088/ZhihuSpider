@@ -361,6 +361,7 @@ class GetUser(threading.Thread):
                 traceback.print_exc()
 
         except Exception as err:
+            print(user_info)
             print("获取数据出错，跳过用户")
             self.redis_con.hdel("already_get_user", name_url)
             self.del_already_user(name_url)
