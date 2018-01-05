@@ -21,7 +21,7 @@ class Login:
         "Upgrade-Insecure-Requests": "1",
         "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
         "Pragma": "no-cache",
-        "Accept-Encoding": "gzip, deflate, br",
+        "Accept-Encoding": "gzip, deflate",
         'Connection': 'close'
     }
     __xsrf = ''
@@ -50,7 +50,7 @@ class Login:
 
     # 获取xsrf
     def get_xsrf(self):
-        index_url = 'http://www.zhihu.com'
+        index_url = 'http://www.zhihu.com/'
         # 获取登录时需要用到的_xsrf
         try:
             index_page = self.__session.get(index_url, headers=self.headers, timeout=35)

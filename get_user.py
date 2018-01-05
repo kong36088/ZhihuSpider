@@ -27,7 +27,7 @@ class GetUser(threading.Thread):
         "Upgrade-Insecure-Requests": "1",
         "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
         "Pragma": "no-cache",
-        "Accept-Encoding": "gzip, deflate, br",
+        "Accept-Encoding": "gzip, deflate",
         'Connection': 'close',
         # 'authorization': 'oauth c3cef7c66a1843f8b3a9e6a1e3160e20'
     }
