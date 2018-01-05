@@ -50,7 +50,7 @@ class Login:
 
     # 获取xsrf
     def get_xsrf(self):
-        index_url = 'http://www.zhihu.com/'
+        index_url = 'http://www.zhihu.com/explore'
         # 获取登录时需要用到的_xsrf
         try:
             index_page = self.__session.get(index_url, headers=self.headers, timeout=35)
