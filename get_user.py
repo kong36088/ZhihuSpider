@@ -19,17 +19,18 @@ class GetUser(threading.Thread):
     session = None
     config = None
     headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/53.0.2785.143 Safari/537.36",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.108 Safari/537.36",
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
         "Host": "www.zhihu.com",
         "Referer": "https://www.zhihu.com/",
         "Origin": "https://www.zhihu.com/",
         "Upgrade-Insecure-Requests": "1",
-        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+        "Content-Type": "application/json, text/plain, */*",
         "Pragma": "no-cache",
-        "Accept-Encoding": "gzip, deflate, br",
+        "Accept-Encoding": "gzip, deflate",
         'Connection': 'close',
-        'authorization': 'oauth c3cef7c66a1843f8b3a9e6a1e3160e20'
+        'authorization': 'oauth c3cef7c66a1843f8b3a9e6a1e3160e20',
+        'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
     }
 
     retry = 0  # 重试次数
@@ -399,7 +400,8 @@ class GetUser(threading.Thread):
 
 
 if __name__ == '__main__':
-    login = GetUser(999, "登陆线程")
+    # master代码不再需要登陆
+    # login = GetUser(999, "登陆线程")
 
     threads = []
     threads_num = 2
