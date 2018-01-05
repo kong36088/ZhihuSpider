@@ -14,6 +14,9 @@ import threading
 import time
 import random
 
+# 获取配置
+cfg = configparser.ConfigParser()
+cfg.read("config.ini")
 
 class GetUser(threading.Thread):
     session = None
@@ -46,6 +49,7 @@ class GetUser(threading.Thread):
         'Mozilla/5.0 (Windows; U; Windows NT 6.1; en-us) AppleWebKit/534.50 (KHTML, like Gecko) Version/5.1 Safari/534.50',
         'Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 5.1; 360SE)',
     )
+    sleep_time = 1
 
     def __init__(self, threadID=1, name=''):
         # 多线程
@@ -62,8 +66,7 @@ class GetUser(threading.Thread):
         self.threadLock = threading.Lock()
 
         # 获取配置
-        self.config = configparser.ConfigParser()
-        self.config.read("config.ini")
+        self.config = cfg
 
         # 初始化session
         requests.adapters.DEFAULT_RETRIES = 5
@@ -111,6 +114,7 @@ class GetUser(threading.Thread):
 
         # 初始化系统设置
         self.max_queue_len = int(self.config.get("sys", "max_queue_len"))
+        self.sleep_time = float(self.config.get("sys", "sleep_time"))
 
     # 获取首页html
     def get_index_page(self):
@@ -300,7 +304,7 @@ class GetUser(threading.Thread):
             return
 
         # 减慢爬虫速度
-        time.sleep(random.random() * 3)
+        time.sleep(self.sleep_time)
         # 获取页面的具体数据
         try:
             user_info = json.loads(about_user_api)
@@ -398,13 +402,12 @@ class GetUser(threading.Thread):
         print(self.name + " is running")
         self.entrance()
 
-
 if __name__ == '__main__':
     # master代码不再需要登陆
     # login = GetUser(999, "登陆线程")
 
     threads = []
-    threads_num = 2
+    threads_num = int(cfg.get("sys", "thread_num"))
     for i in range(0, threads_num):
         m = GetUser(i, "thread" + str(i))
         threads.append(m)

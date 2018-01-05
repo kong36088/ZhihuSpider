@@ -8,7 +8,7 @@ pip install Image requests beautifulsoup4 html5lib redis PyMySQL
 ```
 ## 2.Database Config
 Install `mysql`,create your database.
-Import `init.sql` to create your data table.
+Import `init.sql` to create your table.
 
 ## 3.Install redis
 ``` bash
@@ -63,6 +63,8 @@ pip install Image requests beautifulsoup4 html5lib redis PyMySQL
 1.**需要安装mysql和redis**
 
 2.**配置`config.ini`文件，设置好mysql和redis，并且填写你的知乎帐号（master分支新版爬虫不需要登陆，但是可能会有时效问题，可以切换至new-ui分支使用）**
+
+可以通过配置`config.ini`文件下的`[sys]` `sleep_time` 控制爬虫速度（尽量使用推荐值，过快容易被知乎封禁），`thread_num`配置线程数目
 
 3.**向数据库导入`init.sql`**
 
